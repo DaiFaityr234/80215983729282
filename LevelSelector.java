@@ -1,0 +1,153 @@
+package spelling;
+
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+public class LevelSelector implements ActionListener{
+	//Creating buttons
+	final JLabel levelPrompt = new JLabel("Select a level:");
+	final JButton _levelone = new JButton("Level 1");
+	final JButton _leveltwo = new JButton("Level 2");
+	final JButton _levelthree = new JButton("Level 3");
+	final JButton _levelfour = new JButton("Level 4");
+	final JButton _levelfive = new JButton("Level 5");
+	final JButton _levelsix = new JButton("Level 6");
+	final JButton _levelseven = new JButton("Level 7");
+	final JButton _leveleight = new JButton("Level 8");
+	final JButton _levelnine = new JButton("Level 9");
+	final JButton _levelten = new JButton("Level 10");
+	final JButton _leveleleven = new JButton("Level 11");
+
+	public int startLevel = 0;
+	public SpellingList _list;
+	public String _mode;
+
+	
+	public LevelSelector(SpellingList list,String mode){
+		_list = list;
+		_mode = mode;
+		JOptionPane.showOptionDialog(null,
+				makePanel(),
+				"Level Selection",
+				JOptionPane.YES_OPTION, JOptionPane.PLAIN_MESSAGE, null, new String[]{"CANCEL"} , null);
+	}
+
+	private JPanel makePanel() {
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+
+		//Centre all buttons
+		levelPrompt.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_levelone.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_leveltwo.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_levelthree.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_levelfour.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_levelfive.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_levelsix.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_levelseven.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_leveleight.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_levelnine.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_levelten.setAlignmentX(Component.CENTER_ALIGNMENT);
+		_leveleleven.setAlignmentX(Component.CENTER_ALIGNMENT);
+		
+
+		_levelone.addActionListener(this);
+;
+		_leveltwo.addActionListener(this);
+		_levelthree.addActionListener(this);
+		_levelfour.addActionListener(this);
+		_levelfive.addActionListener(this);
+		_levelsix.addActionListener(this);
+		_levelseven.addActionListener(this);
+		_leveleight.addActionListener(this);
+		_levelnine.addActionListener(this);
+		_levelten.addActionListener(this);
+		_leveleleven.addActionListener(this);
+		
+		//Add all buttons
+		panel.add(levelPrompt);
+		panel.add(_levelone);
+		panel.add(_leveltwo);
+		panel.add(_levelthree);
+		panel.add(_levelfour);
+		panel.add(_levelfive);
+		panel.add(_levelsix);
+		panel.add(_levelseven);
+		panel.add(_leveleight);
+		panel.add(_levelnine);
+		panel.add(_levelten);
+		panel.add(_leveleleven);
+
+		return panel;
+	}
+	//Set operations for different buttons
+	public void actionPerformed(ActionEvent ae) {
+		//Setting internal representation for each option chosen
+		if (ae.getSource() == _levelone) {
+			startLevel = 1;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+			
+		}
+		else if (ae.getSource() == _leveltwo) {
+			startLevel = 2;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _levelthree) {
+			startLevel = 3;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _levelfour) {
+			startLevel = 4;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _levelfive) {
+			startLevel = 5;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _levelsix) {
+			startLevel = 6;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _levelseven) {
+			startLevel = 7;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _leveleight) {
+			startLevel = 8;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _levelnine) {
+			startLevel = 9;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _levelten) {
+			startLevel = 10;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		else if (ae.getSource() == _leveleleven) {
+			startLevel = 11;
+			JOptionPane.getRootFrame().dispose();  
+			_list.createLevelList(startLevel,_mode);
+		}
+		
+		
+	}
+}

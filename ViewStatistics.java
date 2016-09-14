@@ -24,6 +24,7 @@ import javax.swing.JTextArea;
  * @author yyap601
  *
  */
+@SuppressWarnings("serial")
 public class ViewStatistics extends JPanel{
 	
 	// TITLE OF THE PANEL

@@ -8,6 +8,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -45,6 +46,7 @@ public class SpellingAid extends JFrame implements ActionListener{
 
 	//Creating main GUI output area
 	public JTextArea window = new JTextArea(50,30);
+	
 	public JScrollPane scrollBar = new JScrollPane(window);
 	//Layout for main GUI
 	FlowLayout options = new FlowLayout();
@@ -71,14 +73,13 @@ public class SpellingAid extends JFrame implements ActionListener{
 		clearStats.setPreferredSize(new Dimension(150, 30));
 		tabs.add(clearStats);
 
-		//Spacer
-		controller.add(Box.createRigidArea(new Dimension(40,80)));
+
 
 		//Setting sizes of spelling components
 		spellPrompt.setPreferredSize(new Dimension(150, 30));
 		spellPrompt.setAlignmentX(Component.CENTER_ALIGNMENT);
 		controller.add(spellPrompt);
-		userInput.setPreferredSize(new Dimension(150, 30));
+		userInput.setPreferredSize(new Dimension(170, 30));
 		userInput.setAlignmentX(Component.CENTER_ALIGNMENT);
 		controller.add(userInput);
 
@@ -86,17 +87,19 @@ public class SpellingAid extends JFrame implements ActionListener{
 		enter.setAlignmentX(Component.CENTER_ALIGNMENT);
 		controller.add(enter);
 
-		//Spacer
-		controller.add(Box.createRigidArea(new Dimension(40,250)));
+		//Spacer to format components on right hand side of GUI
+		controller.add(Box.createRigidArea(new Dimension(40,100)));
 
+		//Setting size for "Listen to the word again" button
 		wordListen.setFont(new Font("Calibri", Font.BOLD, 10));
 		wordListen.setPreferredSize(new Dimension(150, 70));
 		wordListen.setAlignmentX(Component.CENTER_ALIGNMENT);
 		controller.add(wordListen);
 
-		//Spacer
-		controller.add(Box.createRigidArea(new Dimension(40,250)));
+		//Spacer to format components on right hand side of GUI
+		controller.add(Box.createRigidArea(new Dimension(40,100)));
 
+		//Setting size for voice selecting combo box
 		voxPrompt.setPreferredSize(new Dimension(150, 30));
 		voxPrompt.setAlignmentX(Component.CENTER_ALIGNMENT);
 		controller.add(voxPrompt);
@@ -104,9 +107,10 @@ public class SpellingAid extends JFrame implements ActionListener{
 		voxSelect.setAlignmentX(Component.CENTER_ALIGNMENT);
 		controller.add(voxSelect);
 
-		//Spacer
+		//Spacer to format components on right hand side of GUI
 		controller.add(Box.createRigidArea(new Dimension(40,80)));
 
+		//Setting size for level indicator at the bottom of the GUI
 		levelIndicator.setPreferredSize(new Dimension(40, 30));
 		levelIndicator.setAlignmentX(Component.CENTER_ALIGNMENT);
 		controller.add(levelIndicator);
@@ -114,6 +118,7 @@ public class SpellingAid extends JFrame implements ActionListener{
 		//Arranging tabs and controller
 		pane.add(tabs, BorderLayout.NORTH);
 		pane.add(controller, BorderLayout.EAST);
+		
 		//Set main text display in centre of GUI
 		//Scroll bar allows user to check previous words attempted during current session
 		pane.add(scrollBar, BorderLayout.CENTER);
@@ -124,6 +129,7 @@ public class SpellingAid extends JFrame implements ActionListener{
 		JFrame frame = new JFrame("Spelling_aid");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().add(scrollBar);
+		
 		// Adding action listeners that perform operations when button is pressed
 		newQuiz.addActionListener(this);
 		reviewMistakes.addActionListener(this);
@@ -133,13 +139,17 @@ public class SpellingAid extends JFrame implements ActionListener{
 		enter.addActionListener(this);
 		voxSelect.addActionListener(this);
 		addComponentsToGUI(frame.getContentPane());
-		frame.pack();
+		frame.setSize(630, 500);
 		frame.setVisible(true);
+		
 		//Display welcome message to GUI
 		window.append("                ====================================\n");
 		window.append("                               Welcome to the Spelling Aid\n");
 		window.append("                ====================================\n");
 		window.append("                Please select from one of the options above:\n");
+		
+		//Disable any editing from user
+		window.setEditable(false);
 	}
 	public static void main(String[] args) {
 		try {
@@ -166,11 +176,14 @@ public class SpellingAid extends JFrame implements ActionListener{
 	public void actionPerformed(ActionEvent ae) {
 		//Setting internal representation for each option chosen
 		if (ae.getSource() == newQuiz) {
-			new levelSelector();
+			SpellingList newList = new SpellingList(); //Create new list of 10 words
+			LevelSelector levelSelect = new LevelSelector(newList,"new"); //Create new joptionpane to select level
+			
 			option = 1;
 		}
 		if (ae.getSource() == reviewMistakes) {
-			new levelSelector();
+			SpellingList newList = new SpellingList(); //Create new list of 10 words
+			LevelSelector levelSelect = new LevelSelector(newList,"review"); //Create new joptionpane to select level
 			option = 2;
 		}
 		if (ae.getSource() == viewStats) {
@@ -178,7 +191,11 @@ public class SpellingAid extends JFrame implements ActionListener{
 			option = 3;
 		}
 		if (ae.getSource() == clearStats) {
-
+			try {
+				wordToSpeech("four four four");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			option = 4;
 		}
 		if (ae.getSource() == enter) {
@@ -190,9 +207,19 @@ public class SpellingAid extends JFrame implements ActionListener{
 			option = 6;
 		}
 		if (ae.getSource() == voxSelect) {
-
+			if (voxSelect.getSelectedItem().toString()=="Voice 1"){
+				
+			} else if (voxSelect.getSelectedItem().toString()=="Voice 2"){
+				
+			} else if (voxSelect.getSelectedItem().toString()=="Voice 3"){
+			}
 			option = 7;
 		}
 	}
-
+	public void wordToSpeech(String word) throws IOException{
+		String command = "echo "+word+" | festival --tts";
+		ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", command);
+		@SuppressWarnings("unused")
+		Process process = pb.start();
+	}
 }
