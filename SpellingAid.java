@@ -8,6 +8,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 
 import javax.swing.Box;
@@ -16,15 +17,22 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.text.DefaultCaret;
+
+import spelling.SpellingList.SpellingLevel;
 
 @SuppressWarnings("serial")
 public class SpellingAid extends JFrame implements ActionListener{
+	//The Spelling List so that all buttons can access it, will be set in New/Review button
+	private SpellingList spellList = null;
+	private SpellingLevel spellingLvl = null;
 
 	//Creating buttons for tab menu
 	public JButton newQuiz = new JButton("New Spelling Quiz");
@@ -36,9 +44,7 @@ public class SpellingAid extends JFrame implements ActionListener{
 	public JLabel spellPrompt = new JLabel("Please spell here:");
 	public JTextField userInput = new JTextField();
 	public JButton enter = new JButton("Enter");
-
 	public JButton wordListen = new JButton("Listen to the word again");
-
 	public JLabel voxPrompt = new JLabel("Voice Toggle");
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public JComboBox voxSelect = new JComboBox(new String[]{"Voice 1","Voice 2","Voice 3"});
@@ -46,13 +52,16 @@ public class SpellingAid extends JFrame implements ActionListener{
 
 	//Creating main GUI output area
 	public JTextArea window = new JTextArea(50,30);
-	
 	public JScrollPane scrollBar = new JScrollPane(window);
+
 	//Layout for main GUI
 	FlowLayout options = new FlowLayout();
 
 	//Internal store of the option user requested 
 	public int option = 0;
+
+	//To determine whether to clear out welcome text, if true = don't clear
+	boolean notFirstTime; 
 
 	//Method to add buttons to main GUI frame
 	public void addComponentsToGUI(Container pane) {        
@@ -118,18 +127,18 @@ public class SpellingAid extends JFrame implements ActionListener{
 		//Arranging tabs and controller
 		pane.add(tabs, BorderLayout.NORTH);
 		pane.add(controller, BorderLayout.EAST);
-		
+
 		//Set main text display in centre of GUI
 		//Scroll bar allows user to check previous words attempted during current session
 		pane.add(scrollBar, BorderLayout.CENTER);
 	}
 	// Constructor for spelling aid object
 	public SpellingAid() {
-
+		notFirstTime = false; 
 		JFrame frame = new JFrame("Spelling_aid");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().add(scrollBar);
-		
+
 		// Adding action listeners that perform operations when button is pressed
 		newQuiz.addActionListener(this);
 		reviewMistakes.addActionListener(this);
@@ -141,16 +150,24 @@ public class SpellingAid extends JFrame implements ActionListener{
 		addComponentsToGUI(frame.getContentPane());
 		frame.setSize(630, 500);
 		frame.setVisible(true);
-		
+
 		//Display welcome message to GUI
 		window.append("                ====================================\n");
 		window.append("                               Welcome to the Spelling Aid\n");
 		window.append("                ====================================\n");
-		window.append("                Please select from one of the options above:\n");
-		
+		window.append("                Please select from one of the options above:");
+
 		//Disable any editing from user
 		window.setEditable(false);
+
+		//JTextArea automatically scrolls itself 
+		DefaultCaret scroller = (DefaultCaret)window.getCaret();
+		scroller.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		
+		
+		makeSureAllNecessaryFilesArePresent();// check for the presence of the hidden files
 	}
+
 	public static void main(String[] args) {
 		try {
 			// Preferred look and feel
@@ -176,50 +193,128 @@ public class SpellingAid extends JFrame implements ActionListener{
 	public void actionPerformed(ActionEvent ae) {
 		//Setting internal representation for each option chosen
 		if (ae.getSource() == newQuiz) {
-			SpellingList newList = new SpellingList(); //Create new list of 10 words
-			LevelSelector levelSelect = new LevelSelector(newList,"new"); //Create new joptionpane to select level
-			
+			spellList = new SpellingList(); //Create new list of 10 words
+			LevelSelector levelSelect = new LevelSelector(); //Create new joptionpane to select level
+			if(levelSelect.getLevel()!=0){ // only when a level is selected, that u start changing the window's content
+				if(!notFirstTime){
+					// clear the window
+					window.setText("");
+					notFirstTime = true;
+				}
+
+				//Display new spelling message to GUI
+				window.append("                ====================================\n");
+				window.append("                               New Spelling Quiz ( Level "+ levelSelect.getLevel() +")\n");
+				window.append("                ====================================\n\n");
+				
+				//Start asking questions
+				spellList.createLevelList(levelSelect.getLevel(), "new",this);
+				spellingLvl=spellList.getQuestion(); // initiate swing worker
+				spellingLvl.execute(); // execute quiz
+			}
+
 			option = 1;
 		}
-		if (ae.getSource() == reviewMistakes) {
-			SpellingList newList = new SpellingList(); //Create new list of 10 words
-			LevelSelector levelSelect = new LevelSelector(newList,"review"); //Create new joptionpane to select level
+		else if (ae.getSource() == reviewMistakes) {
+
+			spellList = new SpellingList(); //Create new list of 10 words
+			LevelSelector levelSelect = new LevelSelector(); //Create new joptionpane to select level
+			if(levelSelect.getLevel()!=0){ // only when a level is selected, that u start changing the window's content
+				if(!notFirstTime){
+					// clear the window
+					window.setText("");
+					notFirstTime = true;
+				}
+				//Display new spelling message to GUI
+				window.append("                ====================================\n");
+				window.append("                             Review Spelling Quiz ( Level "+ levelSelect.getLevel() +")\n");
+				window.append("                ====================================\n\n");
+
+				spellList.createLevelList(levelSelect.getLevel(), "review",this);
+				
+				if(spellList.getNoOfQuestions()==0){
+					window.append(" There are no words to review in this level.\n\n");
+				} else {
+					//Start asking questions
+					spellingLvl=spellList.getQuestion();// initiate swing worker
+					spellingLvl.execute(); // execute quiz
+
+				}
+			}
+
 			option = 2;
 		}
-		if (ae.getSource() == viewStats) {
-
+		else if (ae.getSource() == viewStats) {
+			// clear the window
+			window.setText("");
+			//Display new spelling message to GUI
+			window.append("                ====================================\n");
+			window.append("                                   Spelling Aid Statistics \n");
+			window.append("                ====================================\n");
+			
+			notFirstTime = false; // to clear the stats
+			
+			// instantiate the statistics obj and execute it
+			SpellingAidStatistics statsWin = new SpellingAidStatistics(this);
+			statsWin.execute();
+			
 			option = 3;
 		}
-		if (ae.getSource() == clearStats) {
-			try {
-				wordToSpeech("four four four");
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		else if (ae.getSource() == clearStats) {
+			// CLEAR STATS info dialog
+			JOptionPane.showMessageDialog(this, ClearStatistics.clearStats(), "Spelling Aid", JOptionPane.INFORMATION_MESSAGE);
+
+
 			option = 4;
 		}
-		if (ae.getSource() == enter) {
+		else if (ae.getSource() == enter) {
+			if(spellList.status.equals("ANSWERING")){
+				spellList.setAnswer(clearTxtBox());
+				spellList.status="ANSWERED";
+			}
 
 			option = 5;
 		}
-		if (ae.getSource() == wordListen) {
+		else if (ae.getSource() == wordListen) {
 
 			option = 6;
 		}
-		if (ae.getSource() == voxSelect) {
+		else if (ae.getSource() == voxSelect) {
 			if (voxSelect.getSelectedItem().toString()=="Voice 1"){
-				
+
 			} else if (voxSelect.getSelectedItem().toString()=="Voice 2"){
-				
+
 			} else if (voxSelect.getSelectedItem().toString()=="Voice 3"){
 			}
 			option = 7;
 		}
 	}
-	public void wordToSpeech(String word) throws IOException{
-		String command = "echo "+word+" | festival --tts";
-		ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", command);
-		@SuppressWarnings("unused")
-		Process process = pb.start();
+
+	// get the text from the text box then clears it
+	private String clearTxtBox(){
+		String theReturn = userInput.getText();
+		userInput.setText("");
+		return theReturn;
+	}
+	
+	// checks that all the files that are storing the statistics are present and create any files that do not exist
+	private void makeSureAllNecessaryFilesArePresent() {
+		File spelling_aid_failed = new File(".spelling_aid_failed");
+		File spelling_aid_statistics = new File(".spelling_aid_statistics");
+		File spelling_aid_tried_words = new File(".spelling_aid_tried_words");
+		try{
+			if(! spelling_aid_failed.exists()){
+				spelling_aid_failed.createNewFile();
+			}
+			if(! spelling_aid_statistics.exists()){
+				spelling_aid_statistics.createNewFile();
+			}
+			if(! spelling_aid_tried_words.exists()){
+				spelling_aid_tried_words.createNewFile();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+
+		}
 	}
 }

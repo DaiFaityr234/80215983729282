@@ -25,14 +25,10 @@ public class LevelSelector implements ActionListener{
 	final JButton _levelten = new JButton("Level 10");
 	final JButton _leveleleven = new JButton("Level 11");
 
-	public int startLevel = 0;
-	public SpellingList _list;
-	public String _mode;
+	private int startLevel = 0;
 
 	
-	public LevelSelector(SpellingList list,String mode){
-		_list = list;
-		_mode = mode;
+	public LevelSelector(){
 		JOptionPane.showOptionDialog(null,
 				makePanel(),
 				"Level Selection",
@@ -60,7 +56,6 @@ public class LevelSelector implements ActionListener{
 		
 
 		_levelone.addActionListener(this);
-;
 		_leveltwo.addActionListener(this);
 		_levelthree.addActionListener(this);
 		_levelfour.addActionListener(this);
@@ -94,60 +89,50 @@ public class LevelSelector implements ActionListener{
 		if (ae.getSource() == _levelone) {
 			startLevel = 1;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
-			
 		}
 		else if (ae.getSource() == _leveltwo) {
 			startLevel = 2;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _levelthree) {
 			startLevel = 3;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _levelfour) {
 			startLevel = 4;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _levelfive) {
 			startLevel = 5;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _levelsix) {
 			startLevel = 6;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _levelseven) {
 			startLevel = 7;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _leveleight) {
 			startLevel = 8;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _levelnine) {
 			startLevel = 9;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _levelten) {
 			startLevel = 10;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
 		else if (ae.getSource() == _leveleleven) {
 			startLevel = 11;
 			JOptionPane.getRootFrame().dispose();  
-			_list.createLevelList(startLevel,_mode);
 		}
-		
-		
+	}
+	
+	public int getLevel(){
+		return startLevel;
 	}
 }

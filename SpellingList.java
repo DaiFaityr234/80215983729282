@@ -14,20 +14,33 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 
 public class SpellingList {
 
 	// THESE ARE TO KEEP TRACK OF QUESTIONS AND ATTEMPT COUNTS
-	int questionNo; 			
-	int _currentLevel;
-	boolean attempt = false; // to record if this was the second attempt
-	String wordToSpell ; 	 
+	// Question Number
+	int questionNo; 	
+	// Current Level
+	int currentLevel;
+	// True if question has been attempted (according to current question)
+	boolean attempt = false; 
+	// Current word to spell
+	private String wordToSpell ; 	 
+	// The status of the program {ASKING, ANSWERING, ANSWERED} 
+	String status;
+	// User's answer is stored here
+	private String userAnswer = "0";
+	// This is the SPELLING AID APP
+	private SpellingAid spellingAidApp = null;
+	// Number of correct answers
+	private int correctAns = 0;
 
 	// List to ask questions from 
-	ArrayList<String> _currentList ;
+	ArrayList<String> currentList ;
 	// List to record stats for the current level
-	ArrayList<String> _currentFailedList ;
-	ArrayList<String> _currentTriedList ;
+	ArrayList<String> currentFailedList ;
+	ArrayList<String> currentTriedList ;
 
 	// Files for statistics recording
 	File wordList;
@@ -36,9 +49,9 @@ public class SpellingList {
 	File spelling_aid_statistics;
 
 	// ArrayLists for storing file contents for easier processing later according to levels
-	HashMap<Integer, ArrayList<String>> mapOfWords = new HashMap<Integer, ArrayList<String>>();
-	HashMap<Integer, ArrayList<String>> mapOfFailedWords = new HashMap<Integer, ArrayList<String>>();
-	HashMap<Integer, ArrayList<String>> mapOfTriedWords = new HashMap<Integer, ArrayList<String>>();
+	HashMap<Integer, ArrayList<String>> mapOfWords;
+	HashMap<Integer, ArrayList<String>> mapOfFailedWords;
+	HashMap<Integer, ArrayList<String>> mapOfTriedWords;
 
 	// construction of spellinglist model for current session
 	public SpellingList(){
@@ -48,6 +61,10 @@ public class SpellingList {
 		spelling_aid_tried_words = new File(".spelling_aid_tried_words");
 		spelling_aid_failed = new File(".spelling_aid_failed");
 		spelling_aid_statistics = new File(".spelling_aid_statistics");
+
+		mapOfWords = new HashMap<Integer, ArrayList<String>>();
+		mapOfFailedWords = new HashMap<Integer, ArrayList<String>>();
+		mapOfTriedWords = new HashMap<Integer, ArrayList<String>>();
 
 		try {
 			// start adding file contents to the appropriate array list
@@ -86,7 +103,7 @@ public class SpellingList {
 					String[] levelNo = triedWord.split(" ");
 					triedLevel = Integer.parseInt(levelNo[1]);
 					triedWordsInALevel = new ArrayList<String>();
-					mapOfWords.put(triedLevel,triedWordsInALevel);
+					mapOfTriedWords.put(triedLevel,triedWordsInALevel);
 				} else {
 					triedWordsInALevel.add(triedWord);
 				}
@@ -107,24 +124,28 @@ public class SpellingList {
 					String[] levelNo = failedWord.split(" ");
 					reviewLevel = Integer.parseInt(levelNo[1]);
 					wordsToReviewInALevel = new ArrayList<String>();
-					mapOfWords.put(reviewLevel,wordsToReviewInALevel);
+					mapOfFailedWords.put(reviewLevel,wordsToReviewInALevel);
 				} else {
 					wordsToReviewInALevel.add(failedWord);
 				}
-				failedWord = readWordList.readLine();
+				failedWord = readFailList.readLine();
 			}
 			readFailList.close();
 
 		} catch (IOException e){
-			System.out.println("Make sure that the file wordlist which contains all the words that will be quizzed is in the same directory as this runnable jar file");
+			e.printStackTrace();
 		}
 
 	}
 
-	// creates a list of words to test according to level and mode
-	public void createLevelList(int level, String spellingType){
+	// Creates a list of words to test according to level and mode
+	public void createLevelList(int level, String spellingType, SpellingAid spellAidApp){
+		// For every level these following variables start as follows
 		questionNo = 0;
-		_currentLevel = level;
+		correctAns = 0;
+		currentLevel = level;
+		spellingAidApp = spellAidApp;
+		status = "ASKING";
 
 		// choose list to read from according to mode
 		HashMap<Integer, ArrayList<String>> wordMap;
@@ -133,15 +154,16 @@ public class SpellingList {
 		} else {
 			wordMap = mapOfFailedWords; 
 		}
-		
-		if(mapOfFailedWords.get(_currentLevel)==null){
-			mapOfFailedWords.put(_currentLevel, new ArrayList<String>());
+
+		// if level has not been attempted, create a list for that level since it won't exist
+		if(mapOfFailedWords.get(currentLevel)==null){
+			mapOfFailedWords.put(currentLevel, new ArrayList<String>());
 		}
-		
-		if(mapOfTriedWords.get(_currentLevel)==null){
-			mapOfTriedWords.put(_currentLevel, new ArrayList<String>());
+		if(mapOfTriedWords.get(currentLevel)==null){
+			mapOfTriedWords.put(currentLevel, new ArrayList<String>());
 		}
-		
+
+		// produce 10 random words from the correct list of words
 		ArrayList<String> listOfWordsToChooseFrom = wordMap.get(level);
 		ArrayList<String> listOfWordsToTest = new ArrayList<String>();
 		Set<String> uniqueWordsToTest = new HashSet<String>();
@@ -155,80 +177,136 @@ public class SpellingList {
 		}
 		listOfWordsToTest.addAll(uniqueWordsToTest);
 
-		_currentList = listOfWordsToTest;
-		_currentFailedList = mapOfFailedWords.get(_currentLevel);
-		_currentTriedList = mapOfTriedWords.get(_currentLevel);
+		// initialise lists for checking
+		currentList = listOfWordsToTest;
+		currentFailedList = mapOfFailedWords.get(currentLevel);
+		currentTriedList = mapOfTriedWords.get(currentLevel);
+	}
 
-		askNextQuestion();
+	// This class will carry out a spelling level's question asking and answer checking
+	class SpellingLevel extends SwingWorker<Void, Void>{
+		int noOfQ = getNoOfQuestions();
+		protected Void doInBackground(){
+			while(true){
+				// ASKING = time to ask the next question
+				if(status.equals("ASKING")){
+					// this while loop will keep looping until all questions have been asked
+					if(questionNo == getNoOfQuestions()){
+						break;
+					} else {
+						askNextQuestion();
+					}
+				}
+				// while the question is UNANSWERED stay in this while loop and don't check for answer, status = "ANSWERING"
+				while(!status.equals("ANSWERED")){
+					@SuppressWarnings("unused")
+					int hi = 99999999*9999999; // to keep the while loop busy
+				}
+				// check answer when question is ANSWERED
+				checkAnswer();
+			}
+			return null;
+		}
+		
+		// when done
+		protected void done(){
+			spellingAidApp.window.append("\n You have gotten "+ correctAns +" out of "+ noOfQ + " correct !\n\n" );
+			recordStatsFromLevel();
+		}
 
+	}
+
+	// this is to get a SwingWorker object that will run the spelling level's question asking and answer checking in the background
+	public SpellingLevel getQuestion(){
+		return new SpellingLevel();
 	}
 
 	// Start asking the new question
-	public void askNextQuestion(){
-		// ask the next question
-		questionNo++;
+	private void askNextQuestion(){
 		// attempt is true when it is the second attempt
 		attempt = false;
-		wordToSpell = _currentList.get(questionNo);
-		processStarter("echo Please spell word " + questionNo + " of " + _currentList.size() + ": " + wordToSpell + " | festival --tts");
+		// starts at 0
+		wordToSpell = currentList.get(questionNo);
+		// then increment the question no to represent the real question number
+		questionNo++;
+
+		spellingAidApp.window.append("\n Spell word " + questionNo + " of " + currentList.size() + ": ");
+		processStarter("echo Please spell word " + questionNo + " of " + currentList.size() + ": " + wordToSpell + " | festival --tts");
+
+		// after ASKING, it is time for ANSWERING
+		status = "ANSWERING";
 	}
 
 	// To check if the answer is right and act accordingly
-	public void checkAnswer(String answer){
-		// ensure that the answer is valid
-		if (!allAlphabet(answer)){
-			// replace null with the GUI
-			JOptionPane.showMessageDialog(null, "Only ALPHABETS are allowed!!! (No Symbols or Numbers or Spaces)", "Input Warning",JOptionPane.WARNING_MESSAGE);
-			return;
-		}
+	private void checkAnswer(){
 
-		// turn to lower case and then compare
-		if(answer.toLowerCase().equals(wordToSpell)){
+		// ensure that the answer is valid
+		if (!validInput(userAnswer)){
+			// warning dialog for invalid user input
+			JOptionPane.showMessageDialog(spellingAidApp, "Only ALPHABETS and \" \' \" are allowed!!!", "Input Warning",JOptionPane.WARNING_MESSAGE);
+			// go back to ANSWERING since current answer is invalid
+			status = "ANSWERING";
+			return;
+		} 
+
+
+		// if it is valid, start the checking
+		spellingAidApp.window.append(userAnswer+"\n");
+		// turn to lower case for BOTH and then compare
+		if(userAnswer.toLowerCase().equals(wordToSpell.toLowerCase())){
 			processStarter("echo Correct | festival --tts"); // Correct echoed if correct
 			if(!attempt){
 				record(spelling_aid_statistics,wordToSpell+" Mastered"); // store as mastered
-				attempt = true;
 			} else {
 				record(spelling_aid_statistics,wordToSpell+" Faulted"); // store as faulted
 			}
-			if(_currentFailedList.contains(wordToSpell)){ // remove from failed list if exists
-				_currentFailedList.remove(wordToSpell);
+			if(currentFailedList.contains(wordToSpell)){ // remove from failed list if exists
+				currentFailedList.remove(wordToSpell);
 			}
+			correctAns++; //question answered correctly
+			attempt = true; // question has been attempted
+			// answer is correct and so proceed to ASKING the next question
+			status = "ASKING";
 		} else {
 			if(!attempt){
+				spellingAidApp.window.append("      Incorrect, try once more: ");
 				processStarter("echo Incorrect, try once more: "+wordToSpell+" . "+wordToSpell+" . " + "| festival --tts");
-				attempt = true;
+				// answer is wrong and a second chance is given and so back to ANSWERING
+				status = "ANSWERING";
 			} else {
 				processStarter("echo Incorrect | festival --tts");
 				record(spelling_aid_statistics,wordToSpell+" Failed"); // store as failed
-				if(!_currentFailedList.contains(wordToSpell)){ //add to failed list if it doesn't exist
-					_currentFailedList.add(wordToSpell);
+				if(!currentFailedList.contains(wordToSpell)){ //add to failed list if it doesn't exist
+					currentFailedList.add(wordToSpell);
 				}
+				// answer is wrong on second attempt and so back to ASKING
+				status = "ASKING";
 			}
+			attempt = true; // question has been attempted
 		}
 
 		if (attempt){
 			// store as an attempted word after checking to make sure that there are no duplicates in the tried_words list
-			if(!_currentTriedList.contains(wordToSpell)){
-				_currentFailedList.add(wordToSpell);
-				
+			if(!currentTriedList.contains(wordToSpell)){
+				currentTriedList.add(wordToSpell);
+
 			}
-		
 		}
+
 	}
-	
+
 	/// this is to record everything related to the current level to the file
 	public void recordStatsFromLevel(){
 		Object[] failedKeys = mapOfFailedWords.keySet().toArray();
 		Object[] triedKeys = mapOfFailedWords.keySet().toArray();
-		
+
 		ClearStatistics.clearFile(spelling_aid_failed);
 		ClearStatistics.clearFile(spelling_aid_tried_words);
 
-		
+
 		Arrays.sort(failedKeys);
 		Arrays.sort(triedKeys);
-		
+
 		for(Object key : failedKeys){
 			int dKey = (Integer)key;
 			record(spelling_aid_failed,"%Level "+dKey);
@@ -243,7 +321,7 @@ public class SpellingList {
 				record(spelling_aid_tried_words,wordToRecord);
 			}
 		}	
-		
+
 	}
 
 
@@ -273,14 +351,33 @@ public class SpellingList {
 	}
 
 	// function to ensure that the answer the user inputted is valid (in the format that can be accepted)
-	private boolean allAlphabet(String answer) {
+	private boolean validInput(String answer) {
 		char[] chars = answer.toCharArray();
+		// blank = unacceptable
+		if(answer.equals("")){
+			return false;
+		}
+		// first letter symbol = unacceptable
+		if(!Character.isLetter(chars[0])){
+			return false;
+		}
+		// accept any space or ' after first letter
 		for (char c : chars) {
-			if(!Character.isLetter(c)) {
+			if(!Character.isLetter(c) && (c != '\'') && (c != ' ')) {
 				return false;
 			}
 		}
 		return true;	
+	}
+	
+	// for the GUI to set the answer
+	public void setAnswer(String theUserAnswer){
+		userAnswer=theUserAnswer;
+	}
+	
+	// get number of questions
+	public int getNoOfQuestions(){
+		return currentList.size();
 	}
 
 }
