@@ -19,6 +19,8 @@ import javax.swing.SwingWorker;
 public class SpellingList {
 
 	// THESE ARE TO KEEP TRACK OF QUESTIONS AND ATTEMPT COUNTS
+	// Spelling Type
+	String spellType;
 	// Question Number
 	int questionNo; 	
 	// Current Level
@@ -144,6 +146,7 @@ public class SpellingList {
 		questionNo = 0;
 		correctAns = 0;
 		currentLevel = level;
+		spellType=spellingType;
 		spellingAidApp = spellAidApp;
 		status = "ASKING";
 
@@ -187,31 +190,41 @@ public class SpellingList {
 	class SpellingLevel extends SwingWorker<Void, Void>{
 		int noOfQ = getNoOfQuestions();
 		protected Void doInBackground(){
-			while(true){
-				// ASKING = time to ask the next question
-				if(status.equals("ASKING")){
-					// this while loop will keep looping until all questions have been asked
-					if(questionNo == getNoOfQuestions()){
-						break;
-					} else {
-						askNextQuestion();
+			if(noOfQ!=0){
+				while(true){
+					// ASKING = time to ask the next question
+					if(status.equals("ASKING")){
+						// this while loop will keep looping until all questions have been asked
+						if(questionNo == getNoOfQuestions()){
+							break;
+						} else {
+							askNextQuestion();
+						}
 					}
+					// while the question is UNANSWERED stay in this while loop and don't check for answer, status = "ANSWERING"
+					while(!status.equals("ANSWERED")){
+						@SuppressWarnings("unused")
+						int hi = 99999999*9999999; // to keep the while loop busy
+					}
+					// check answer when question is ANSWERED
+					checkAnswer();
 				}
-				// while the question is UNANSWERED stay in this while loop and don't check for answer, status = "ANSWERING"
-				while(!status.equals("ANSWERED")){
-					@SuppressWarnings("unused")
-					int hi = 99999999*9999999; // to keep the while loop busy
-				}
-				// check answer when question is ANSWERED
-				checkAnswer();
+			} else {
+				spellingAidApp.window.append(" There are no words to review in this level.\n\n");
+
 			}
 			return null;
 		}
-		
+
 		// when done
 		protected void done(){
 			spellingAidApp.window.append("\n You have gotten "+ correctAns +" out of "+ noOfQ + " correct !\n\n" );
 			recordStatsFromLevel();
+			if(spellType.equals("new")){
+				spellingAidApp.nextQuizOptions();
+			} else {
+				spellingAidApp.revertToOriginal();
+			}
 		}
 
 	}
@@ -231,7 +244,8 @@ public class SpellingList {
 		questionNo++;
 
 		spellingAidApp.window.append("\n Spell word " + questionNo + " of " + currentList.size() + ": ");
-		processStarter("echo Please spell word " + questionNo + " of " + currentList.size() + ": " + wordToSpell + " | festival --tts");
+		spellingAidApp.voiceGen.sayText("Please spell word " + questionNo + " of " + currentList.size() + ": ",wordToSpell);
+		//processStarter("echo Please spell word " + questionNo + " of " + currentList.size() + ": " + wordToSpell + " | festival --tts");
 
 		// after ASKING, it is time for ANSWERING
 		status = "ANSWERING";
@@ -254,7 +268,9 @@ public class SpellingList {
 		spellingAidApp.window.append(userAnswer+"\n");
 		// turn to lower case for BOTH and then compare
 		if(userAnswer.toLowerCase().equals(wordToSpell.toLowerCase())){
-			processStarter("echo Correct | festival --tts"); // Correct echoed if correct
+			// Correct echoed if correct
+			spellingAidApp.voiceGen.sayText("Correct","");
+			//processStarter("echo Correct | festival --tts"); 
 			if(!attempt){
 				record(spelling_aid_statistics,wordToSpell+" Mastered"); // store as mastered
 			} else {
@@ -270,11 +286,13 @@ public class SpellingList {
 		} else {
 			if(!attempt){
 				spellingAidApp.window.append("      Incorrect, try once more: ");
-				processStarter("echo Incorrect, try once more: "+wordToSpell+" . "+wordToSpell+" . " + "| festival --tts");
+				spellingAidApp.voiceGen.sayText("Incorrect, try once more: ",wordToSpell+" . "+wordToSpell+" . ");
+				//processStarter("echo Incorrect, try once more: "+wordToSpell+" . "+wordToSpell+" . " + "| festival --tts");
 				// answer is wrong and a second chance is given and so back to ANSWERING
 				status = "ANSWERING";
 			} else {
-				processStarter("echo Incorrect | festival --tts");
+				spellingAidApp.voiceGen.sayText("Incorrect.","");
+				//processStarter("echo Incorrect | festival --tts");
 				record(spelling_aid_statistics,wordToSpell+" Failed"); // store as failed
 				if(!currentFailedList.contains(wordToSpell)){ //add to failed list if it doesn't exist
 					currentFailedList.add(wordToSpell);
@@ -324,7 +342,7 @@ public class SpellingList {
 
 	}
 
-
+	/*
 	// to run BASH commands
 	private void processStarter(String command){
 		// process builder to run bash commands
@@ -337,6 +355,7 @@ public class SpellingList {
 			e.printStackTrace();
 		}
 	}
+	 */
 
 	// record a word to a file
 	public static void record(File file,String word){
@@ -369,15 +388,23 @@ public class SpellingList {
 		}
 		return true;	
 	}
-	
+
 	// for the GUI to set the answer
 	public void setAnswer(String theUserAnswer){
 		userAnswer=theUserAnswer;
 	}
-	
+
 	// get number of questions
 	public int getNoOfQuestions(){
 		return currentList.size();
 	}
 
+	// get number of questions
+	public int getCurrentLevel(){
+		return currentLevel;
+	}
+
+	public String getCurrentWord(){
+		return wordToSpell;
+	}
 }

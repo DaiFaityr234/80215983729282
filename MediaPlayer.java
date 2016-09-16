@@ -5,32 +5,30 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
-import uk.co.caprica.vlcj.binding.LibVlc;
 import uk.co.caprica.vlcj.component.EmbeddedMediaPlayerComponent;
 import uk.co.caprica.vlcj.player.embedded.EmbeddedMediaPlayer;
-import uk.co.caprica.vlcj.runtime.RuntimeUtil;
 
-import com.sun.jna.Native;
-import com.sun.jna.NativeLibrary;
-
-public class MediaPlayer {
-
+public class MediaPlayer{
 	//Main embedded vlc player
 	private final EmbeddedMediaPlayerComponent mediaPlayerComponent;
 	//Integer store to allow toggling of play/pause button
 	public int pp = 0;
-	private MediaPlayer(String[] args) {
+	private SpellingAid spellingAid;
+
+	
+	public MediaPlayer(int i,SpellingAid spellAid) {
+		spellingAid = spellAid;
 
 		//Window surrounding media player
-		JFrame frame = new JFrame("VIDEO REWARD");
+		final JFrame frame = new JFrame("VIDEO REWARD");
 
 		mediaPlayerComponent = new EmbeddedMediaPlayerComponent();
 
@@ -140,23 +138,43 @@ public class MediaPlayer {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 		frame.add(tabs, BorderLayout.NORTH);
-		String filename = "big_buck_bunny_1_minute.avi";
-		video.playMedia(filename);
+		
+		//Extra video option
+		File f = new File("output.avi");
+		if(!f.exists()) { 
+			processStarter("ffmpeg -i big_buck_bunny_1_minute.avi -filter_complex '[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]' -map '[v]' -map '[a]' output.avi");
+		}
+		if (i == 1){
+			video.playMedia("big_buck_bunny_1_minute.avi");
+		}
+		else if (i == 2){
+			//Play extra video option
+			video.playMedia("output.avi");
+		}
 
-	}  
-
-	public static void main(final String[] args) {
-
-		NativeLibrary.addSearchPath(
-				RuntimeUtil.getLibVlcLibraryName(), "/Applications/vlc-2.0.0/VLC.app/Contents/MacOS/lib"
-				);
-		Native.loadLibrary(RuntimeUtil.getLibVlcLibraryName(), LibVlc.class);
-
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				new MediaPlayer(args);
-			}
+		frame.addWindowListener(new java.awt.event.WindowAdapter() {
+		    @Override
+		    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+		    	frame.setVisible(false);
+		    	frame.dispose();
+		    	spellingAid.nextQuizOptions();
+		    }
 		});
-	}
+		}
+
+	// to run BASH commands
+		private void processStarter(String command){
+			// process builder to run bash commands
+			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
+			Process process;
+			try {
+				process = builder.start();
+				process.waitFor();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	
+	
+	
 }

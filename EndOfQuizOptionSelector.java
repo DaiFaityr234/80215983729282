@@ -13,9 +13,16 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 public class EndOfQuizOptionSelector implements ActionListener{
-	
+	JButton _replaylevel;
+	JButton _nextlevel;
+	JButton _videoreward ;
+	JButton _videoreward2;
+	JButton _done;
+	int option;
+	//SpellingAid sA;
 	//Create option pane to select next action
 	public EndOfQuizOptionSelector(){
+		//sA=sa;
 		JOptionPane.showOptionDialog(null,
 				makePanel(),
 				"Spelling Quiz Options",
@@ -39,15 +46,17 @@ public class EndOfQuizOptionSelector implements ActionListener{
 		JPanel panel = new JPanel();
 		panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));//stack buttons horizontally in panel
 		
-		final JButton _replaylevel = new JButton("Replay current level");
-		final JButton _nextlevel = new JButton("Play next level");
-		final JButton _videoreward = new JButton("Play video reward");
-		final JButton _done = new JButton("Done");
+		_replaylevel = new JButton("Replay current level");
+		_nextlevel = new JButton("Play next level");
+		_videoreward = new JButton("Play video reward 1");
+		_videoreward2 = new JButton("Play video reward 2");
+		_done = new JButton("Done");
 		
 		//Adding action listeners
 		_replaylevel.addActionListener(this);
 		_nextlevel.addActionListener(this);
 		_videoreward.addActionListener(this);
+		_videoreward2.addActionListener(this);
 		_done.addActionListener(this);
 		
 		//Add replay level button
@@ -68,6 +77,12 @@ public class EndOfQuizOptionSelector implements ActionListener{
 		//Add spacer between buttons for aesthetic purposes
 		panel.add(Box.createRigidArea(new Dimension(15,20)));
 		
+		//Add video reward 2 button
+		panel.add(_videoreward2);
+		
+		//Add spacer between buttons for aesthetic purposes
+		panel.add(Box.createRigidArea(new Dimension(15,20)));
+		
 		//Add done button
 		panel.add(_done);
 		
@@ -80,8 +95,31 @@ public class EndOfQuizOptionSelector implements ActionListener{
 		return mainPanel;
 	}
 
-	public void actionPerformed(ActionEvent e) {
-		
+	public void actionPerformed(ActionEvent ae) {
+		if(ae.getSource() == _replaylevel){
+			option = 1;
+			JOptionPane.getRootFrame().dispose(); 
+		} else if(ae.getSource() == _nextlevel){
+			option = 2;
+			JOptionPane.getRootFrame().dispose(); 
+		} else if(ae.getSource() == _videoreward){
+			option = 3;
+			JOptionPane.getRootFrame().dispose(); 
+
+			//new MediaPlayer(1,sA);
+		} else if(ae.getSource() == _videoreward2){
+			option = 4;
+			JOptionPane.getRootFrame().dispose(); 
+
+			//new MediaPlayer(2,sA);
+		} else if(ae.getSource() == _done){
+			option = 0;
+			JOptionPane.getRootFrame().dispose(); 
+		}
 		
 	}
+	public int getOption() {
+		return option;
+	}
+	
 }

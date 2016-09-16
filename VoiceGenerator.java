@@ -4,51 +4,57 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-public class VoiceGenerator {
-		private String command;
-		private String text;
-		private double pitch;
-		private double utteranceRange;
+import javax.swing.SwingWorker;
+
+public class VoiceGenerator extends SwingWorker<Void, Void>{
+		//private double pitch;
+		//private double utteranceRange;
 		private double speed;
 		private Voice voice;
+		private File schemeFile;
+		private String swingWorkerChangedText;
+		private String swingWorkerNormalText;
 		
-
-		public VoiceGenerator(String textToSay) {
-			this(textToSay, Voice.JOHN3, 110, 20, 1);
-		}
-
-		public VoiceGenerator(String textToSay, Voice voice, double pitch, double utteranceRange, double speed){
-			this.text = textToSay;
-			this.pitch = pitch;
-			this.utteranceRange = utteranceRange;
-			this.speed = speed;
-			this.voice = voice;
+		
+		public VoiceGenerator(Voice chosenVoice, double chosenSpeed){
+			makeSureScmFileIsPresent();
+			schemeFile = new File(".spelling_aid_voice_scm");
+					
+			//this.pitch = pitch;
+			//this.utteranceRange = utteranceRange;
+			this.speed = chosenSpeed;
+			this.voice = chosenVoice;
 		}
 
 		public static enum Voice{
-			JOHN1, JOHN2, JOHN3;
-		}
-
-
-		public void getVoiceFromName(String name){
-
-			name = name.toLowerCase();
-
-			switch(name){
-				case "john1":
-					command = "festival –b temp1.scm";
-				case "john2":
-					command = "festival –b temp2.scm";
-				case "john3":
-					command = "festival –b temp3.scm";
-			}
-			
-			bashCmd(command);
+			DEFAULT,AUCKLAND;
 		}
 		
-
+		public void setVoice(Voice chosenVoice){
+			voice=chosenVoice;
+		}
+		
+		
+		public void sayText(String normalSpeedText,String changedText){
+			ClearStatistics.clearFile(schemeFile);
+			if(voice == Voice.DEFAULT){
+				System.out.println("DEFAULT");
+				SpellingList.record(schemeFile, "(voice_rab_diphone)\n" );
+			} else {
+				System.out.println("AUCKLAND");
+				SpellingList.record(schemeFile, "(voice_akl_nz_jdt_diphone)\n");
+			}
+			SpellingList.record(schemeFile,("(SayText \"" + normalSpeedText + "\" )\n"));
+			SpellingList.record(schemeFile, "(Parameter.set 'Duration_Stretch "+speed+")\n");
+			SpellingList.record(schemeFile,("(SayText \"" + changedText + "\" )\n"));
+			SpellingList.record(schemeFile,"(quit)");
+			processStarter("festival -b .spelling_aid_voice_scm");
+			
+		}
+		
+		
 		// to run BASH commands
-		private void bashCmd(String command){
+		private void processStarter(String command){
 			// process builder to run bash commands
 			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
 			Process process;
@@ -60,44 +66,25 @@ public class VoiceGenerator {
 			}
 		}
 		
-		
-		/*
-		
-		 * Begin speaking the text that was entered when creating this object
-		 
-		public void speak() {
-			try {
-				File file = new File("temp.scm");
-
-				switch (this.voice){
-					case JOHN1:
-						file = new File("temp1.scm");
-
-						PrintWriter writer = new PrintWriter(file, "UTF-8");
-						writer.println("(voice_kal_diphone)");
-						writer.close();
-						break;
-					case JOHN2:
-						file = new File("temp2.scm");
-
-						writer = new PrintWriter(file, "UTF-8");
-						writer.println("(voice_rab_diphone)");
-						writer.close();
-						break;
-					case JOHN3:
-						file = new File("temp3.scm");
-
-						writer = new PrintWriter(file, "UTF-8");
-						writer.println("(voice_akl_nz_jdt_diphone)");
-						writer.close();
-						break;
+		private void makeSureScmFileIsPresent() {
+			File scmFile = new File(".spelling_aid_voice_scm");
+			try{
+				if(! scmFile.exists()){
+					scmFile.createNewFile();
 				}
-
-				
-			} catch (IOException e){
+			} catch (IOException e) {
 				e.printStackTrace();
+
 			}
-		
 		}
-		*/
+		
+		public void setTextForSwingWorker(String normal, String changed){
+			swingWorkerChangedText = changed;
+			swingWorkerNormalText = normal;
+		}
+
+		protected Void doInBackground() throws Exception {
+			sayText(swingWorkerNormalText,swingWorkerChangedText);
+			return null;
+		}
 }

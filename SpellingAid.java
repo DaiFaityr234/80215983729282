@@ -27,12 +27,25 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.text.DefaultCaret;
 
 import spelling.SpellingList.SpellingLevel;
+import spelling.VoiceGenerator.Voice;
 
 @SuppressWarnings("serial")
 public class SpellingAid extends JFrame implements ActionListener{
+
+
+	JFrame frame = new JFrame("Spelling_aid"); //Main spelling frame
+	final JPanel tabs = new JPanel(); //Main spelling option buttons
+	final JPanel controller = new JPanel(); //Main spelling logic functions
+
 	//The Spelling List so that all buttons can access it, will be set in New/Review button
 	private SpellingList spellList = null;
 	private SpellingLevel spellingLvl = null;
+
+	//The voice generator for Spelling Aid
+	public VoiceGenerator voiceGen = null;
+	public VoiceGenerator respellGen = null;
+	public Voice theVoice = Voice.DEFAULT;
+	public double theVoiceSpeed = 1.3;
 
 	//Creating buttons for tab menu
 	public JButton newQuiz = new JButton("New Spelling Quiz");
@@ -47,7 +60,7 @@ public class SpellingAid extends JFrame implements ActionListener{
 	public JButton wordListen = new JButton("Listen to the word again");
 	public JLabel voxPrompt = new JLabel("Voice Toggle");
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public JComboBox voxSelect = new JComboBox(new String[]{"Voice 1","Voice 2","Voice 3"});
+	public JComboBox voxSelect = new JComboBox(new String[]{"Default","Auckland"});
 	public JLabel levelIndicator = new JLabel("Level X");
 
 	//Creating main GUI output area
@@ -57,17 +70,13 @@ public class SpellingAid extends JFrame implements ActionListener{
 	//Layout for main GUI
 	FlowLayout options = new FlowLayout();
 
-	//Internal store of the option user requested 
-	public int option = 0;
-
 	//To determine whether to clear out welcome text, if true = don't clear
 	boolean notFirstTime; 
 
 	//Method to add buttons to main GUI frame
 	public void addComponentsToGUI(Container pane) {        
 
-		final JPanel tabs = new JPanel();
-		final JPanel controller = new JPanel();
+
 		tabs.setLayout(options);
 		options.setAlignment(FlowLayout.TRAILING);
 		controller.setLayout(new BoxLayout(controller, BoxLayout.Y_AXIS));
@@ -124,7 +133,7 @@ public class SpellingAid extends JFrame implements ActionListener{
 		levelIndicator.setAlignmentX(Component.CENTER_ALIGNMENT);
 		controller.add(levelIndicator);
 
-		//Arranging tabs and controller
+		//Arranging tabs only when GUI is opened for the first time
 		pane.add(tabs, BorderLayout.NORTH);
 		pane.add(controller, BorderLayout.EAST);
 
@@ -135,7 +144,7 @@ public class SpellingAid extends JFrame implements ActionListener{
 	// Constructor for spelling aid object
 	public SpellingAid() {
 		notFirstTime = false; 
-		JFrame frame = new JFrame("Spelling_aid");
+
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().add(scrollBar);
 
@@ -148,9 +157,9 @@ public class SpellingAid extends JFrame implements ActionListener{
 		enter.addActionListener(this);
 		voxSelect.addActionListener(this);
 		addComponentsToGUI(frame.getContentPane());
-		frame.setSize(630, 500);
+		frame.setSize(630, 530);
 		frame.setVisible(true);
-
+		controller.setVisible(false); //hide controller until spelling quiz starts
 		//Display welcome message to GUI
 		window.append("                ====================================\n");
 		window.append("                               Welcome to the Spelling Aid\n");
@@ -163,8 +172,14 @@ public class SpellingAid extends JFrame implements ActionListener{
 		//JTextArea automatically scrolls itself 
 		DefaultCaret scroller = (DefaultCaret)window.getCaret();
 		scroller.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-		
-		
+
+		//initialise voice generator for the app
+		voiceGen = new VoiceGenerator(theVoice,theVoiceSpeed);
+
+		//initialise voice generator for the respell button
+		respellGen = new VoiceGenerator(theVoice,theVoiceSpeed);
+		respellGen.cancel(true); // immediately cancel it to allow the respell button to work on the first try
+
 		makeSureAllNecessaryFilesArePresent();// check for the presence of the hidden files
 	}
 
@@ -193,9 +208,13 @@ public class SpellingAid extends JFrame implements ActionListener{
 	public void actionPerformed(ActionEvent ae) {
 		//Setting internal representation for each option chosen
 		if (ae.getSource() == newQuiz) {
+
 			spellList = new SpellingList(); //Create new list of 10 words
 			LevelSelector levelSelect = new LevelSelector(); //Create new joptionpane to select level
 			if(levelSelect.getLevel()!=0){ // only when a level is selected, that u start changing the window's content
+
+				frame.getContentPane().remove(tabs);
+				controller.setVisible(true);
 				if(!notFirstTime){
 					// clear the window
 					window.setText("");
@@ -206,20 +225,21 @@ public class SpellingAid extends JFrame implements ActionListener{
 				window.append("                ====================================\n");
 				window.append("                               New Spelling Quiz ( Level "+ levelSelect.getLevel() +")\n");
 				window.append("                ====================================\n\n");
-				
+
 				//Start asking questions
 				spellList.createLevelList(levelSelect.getLevel(), "new",this);
+				levelIndicator.setText("Level "+ spellList.getCurrentLevel());
 				spellingLvl=spellList.getQuestion(); // initiate swing worker
 				spellingLvl.execute(); // execute quiz
 			}
-
-			option = 1;
 		}
 		else if (ae.getSource() == reviewMistakes) {
 
 			spellList = new SpellingList(); //Create new list of 10 words
 			LevelSelector levelSelect = new LevelSelector(); //Create new joptionpane to select level
 			if(levelSelect.getLevel()!=0){ // only when a level is selected, that u start changing the window's content
+				frame.getContentPane().remove(tabs);
+				controller.setVisible(true);
 				if(!notFirstTime){
 					// clear the window
 					window.setText("");
@@ -231,18 +251,10 @@ public class SpellingAid extends JFrame implements ActionListener{
 				window.append("                ====================================\n\n");
 
 				spellList.createLevelList(levelSelect.getLevel(), "review",this);
-				
-				if(spellList.getNoOfQuestions()==0){
-					window.append(" There are no words to review in this level.\n\n");
-				} else {
-					//Start asking questions
-					spellingLvl=spellList.getQuestion();// initiate swing worker
-					spellingLvl.execute(); // execute quiz
-
-				}
+				levelIndicator.setText("Level "+ spellList.getCurrentLevel());
+				spellingLvl=spellList.getQuestion(); // initiate swing worker
+				spellingLvl.execute(); // execute quiz
 			}
-
-			option = 2;
 		}
 		else if (ae.getSource() == viewStats) {
 			// clear the window
@@ -251,43 +263,46 @@ public class SpellingAid extends JFrame implements ActionListener{
 			window.append("                ====================================\n");
 			window.append("                                   Spelling Aid Statistics \n");
 			window.append("                ====================================\n");
-			
+
 			notFirstTime = false; // to clear the stats
-			
+
 			// instantiate the statistics obj and execute it
 			SpellingAidStatistics statsWin = new SpellingAidStatistics(this);
 			statsWin.execute();
-			
-			option = 3;
 		}
 		else if (ae.getSource() == clearStats) {
 			// CLEAR STATS info dialog
 			JOptionPane.showMessageDialog(this, ClearStatistics.clearStats(), "Spelling Aid", JOptionPane.INFORMATION_MESSAGE);
-
-
-			option = 4;
 		}
 		else if (ae.getSource() == enter) {
+			// only take in input when it is in the ANSWERING phase
 			if(spellList.status.equals("ANSWERING")){
 				spellList.setAnswer(clearTxtBox());
-				spellList.status="ANSWERED";
+				spellList.status="ANSWERED"; // change phase to ASNWERD after accepting answer
 			}
 
-			option = 5;
 		}
 		else if (ae.getSource() == wordListen) {
-
-			option = 6;
+			// this button only works when the voice generator is not generating any voice
+			if(!spellList.status.equals("ASKING")&&respellGen.isDone()){
+				respellGen = new VoiceGenerator(theVoice,theVoiceSpeed);
+				respellGen.setTextForSwingWorker("", spellList.getCurrentWord());
+				respellGen.execute();
+			}
 		}
 		else if (ae.getSource() == voxSelect) {
-			if (voxSelect.getSelectedItem().toString()=="Voice 1"){
+			// sets the chosen voice
+			if (voxSelect.getSelectedItem().toString().equals("Default")){
+				System.out.println("set to default");
+				theVoice = Voice.DEFAULT;
 
-			} else if (voxSelect.getSelectedItem().toString()=="Voice 2"){
-
-			} else if (voxSelect.getSelectedItem().toString()=="Voice 3"){
+			} else if (voxSelect.getSelectedItem().toString().equals("Auckland")){				
+				System.out.println("set to auckland");
+				theVoice = Voice.AUCKLAND;
 			}
-			option = 7;
+			voiceGen.setVoice(theVoice);
 		}
+
 	}
 
 	// get the text from the text box then clears it
@@ -296,7 +311,7 @@ public class SpellingAid extends JFrame implements ActionListener{
 		userInput.setText("");
 		return theReturn;
 	}
-	
+
 	// checks that all the files that are storing the statistics are present and create any files that do not exist
 	private void makeSureAllNecessaryFilesArePresent() {
 		File spelling_aid_failed = new File(".spelling_aid_failed");
@@ -317,4 +332,56 @@ public class SpellingAid extends JFrame implements ActionListener{
 
 		}
 	}
+
+	public void revertToOriginal() {
+		frame.getContentPane().add(tabs, BorderLayout.NORTH);
+		controller.setVisible(false);
+	}
+
+	public void nextQuizOptions() {
+		EndOfQuizOptionSelector endSelector = new EndOfQuizOptionSelector(); //Create new joptionpane to select end of quiz options
+		if(endSelector.getOption()==0){
+			revertToOriginal();
+		}
+		else if (endSelector.getOption()==1){
+			//Display new spelling message to GUI
+			window.append("                ====================================\n");
+			window.append("                               New Spelling Quiz ( Level "+ spellList.getCurrentLevel() +")\n");
+			window.append("                ====================================\n\n");
+			
+			//Start asking questions
+			spellList.createLevelList(spellList.getCurrentLevel(), "new",this);
+			levelIndicator.setText("Level "+ spellList.getCurrentLevel());
+			spellingLvl=spellList.getQuestion(); // initiate swing worker
+			spellingLvl.execute(); // execute quiz
+			
+		}
+		else if (endSelector.getOption()==2){
+			int nextLevel = spellList.getCurrentLevel()+1;
+			//Display new spelling message to GUI
+			window.append("                ====================================\n");
+			window.append("                               New Spelling Quiz ( Level "+ nextLevel +")\n");
+			window.append("                ====================================\n\n");
+			
+			//Start asking questions
+			spellList.createLevelList(nextLevel, "new",this);
+			levelIndicator.setText("Level "+ nextLevel);
+			spellingLvl=spellList.getQuestion(); // initiate swing worker
+			spellingLvl.execute(); // execute quiz
+			
+		}
+		else if (endSelector.getOption()==3){
+			new MediaPlayer(1,this);
+			//SwingWorkerMediaPlayer mp = new SwingWorkerMediaPlayer(1,this);
+			//mp.execute();
+		}
+		else if (endSelector.getOption()==4){
+			new MediaPlayer(2,this);
+			//SwingWorkerMediaPlayer mp = new SwingWorkerMediaPlayer(2,this);
+			//mp.execute();
+
+		}
+
+	}
+
 }
