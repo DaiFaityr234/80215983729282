@@ -5,33 +5,34 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
 
 import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JWindow;
 import javax.swing.Timer;
 
 import uk.co.caprica.vlcj.component.EmbeddedMediaPlayerComponent;
 import uk.co.caprica.vlcj.player.embedded.EmbeddedMediaPlayer;
 
-public class MediaPlayer{
+/**
+ * 
+ * This class creates the main window that opens when the user chooses
+ * to view a video reward, whether it is the special video or not.
+ * @authors yyap601 hchu167
+ *
+ */
+@SuppressWarnings("serial")
+public class MediaPlayer extends JWindow{
 	//Main embedded vlc player
-	private final EmbeddedMediaPlayerComponent mediaPlayerComponent;
+	private final EmbeddedMediaPlayerComponent mediaPlayerComponent = new EmbeddedMediaPlayerComponent();
 	//Integer store to allow toggling of play/pause button
 	public int pp = 0;
-	private SpellingAid spellingAid;
 
-	
-	public MediaPlayer(int i,SpellingAid spellAid) {
-		spellingAid = spellAid;
-
-		//Window surrounding media player
-		final JFrame frame = new JFrame("VIDEO REWARD");
-
-		mediaPlayerComponent = new EmbeddedMediaPlayerComponent();
-
+	//Main constructor of MediaPlayer
+	public MediaPlayer(int i) {
+		final JWindow frame = new JWindow();
+		frame.setAlwaysOnTop(true);
 		final EmbeddedMediaPlayer video = mediaPlayerComponent.getMediaPlayer();
 
 		JPanel panel = new JPanel(new BorderLayout());
@@ -43,16 +44,16 @@ public class MediaPlayer{
 		tabs.setLayout(options);
 		options.setAlignment(FlowLayout.TRAILING);
 
-		final JLabel videoTimer = new JLabel("00:00:00"); //set timer on bottom of window
+		final JLabel videoTimer = new JLabel("Time: "+ "00:00:00"); //set timer on bottom of window
 		videoTimer.setSize(60,25);
-		panel.add(videoTimer, BorderLayout.SOUTH);
+		panel.add(videoTimer, BorderLayout.NORTH);
 
 		//Timer is used to display time in video
 		final Timer timer = new Timer(500, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				int time = (int) (video.getTime()/1000);
 				if(time == 0){
-					videoTimer.setText("00:00:00");
+					videoTimer.setText("Time: "+ "00:00:00");
 				} else {
 
 					//Some division is done to display the time in appropriate format
@@ -72,7 +73,7 @@ public class MediaPlayer{
 					if(hour < 10){
 						h="0"+h;
 					}
-					videoTimer.setText(h+":"+m+":"+s);
+					videoTimer.setText("Time: "+ h+":"+m+":"+s);
 				}
 			}
 		});
@@ -80,7 +81,7 @@ public class MediaPlayer{
 
 		//Make a mute button that stops playing sound of video
 		JButton btnMute = new JButton("MUTE");
-		btnMute.setPreferredSize(new Dimension(255, 30));
+		btnMute.setPreferredSize(new Dimension(204, 30));
 		tabs.add(btnMute);
 		btnMute.addActionListener(new ActionListener() {
 			@Override
@@ -91,7 +92,7 @@ public class MediaPlayer{
 
 		//Make a play/pause button that starts/stops playing the video graphics
 		final JButton btnPause = new JButton("PAUSE");
-		btnPause.setPreferredSize(new Dimension(255, 30));
+		btnPause.setPreferredSize(new Dimension(204, 30));
 		tabs.add(btnPause);
 		btnPause.addActionListener(new ActionListener() {
 			@Override
@@ -105,14 +106,12 @@ public class MediaPlayer{
 					btnPause.setText("PAUSE");
 				}
 				pp++;
-
 			}
-
 		});
 
 		//Make a rewind button that skips back in the video
 		JButton btnRewind = new JButton("REWIND");
-		btnRewind.setPreferredSize(new Dimension(255, 30));
+		btnRewind.setPreferredSize(new Dimension(204, 30));
 		tabs.add(btnRewind);
 		btnRewind.addActionListener(new ActionListener() {
 			@Override
@@ -123,7 +122,7 @@ public class MediaPlayer{
 
 		//Make a fast forward button that skips forward in the video
 		JButton btnFastForward = new JButton("FAST FORWARD");
-		btnFastForward.setPreferredSize(new Dimension(255, 30));
+		btnFastForward.setPreferredSize(new Dimension(204, 30));
 		tabs.add(btnFastForward);
 		btnFastForward.addActionListener(new ActionListener() {
 			@Override
@@ -132,18 +131,24 @@ public class MediaPlayer{
 			}
 		});
 
+		//Make a close button to close the video
+		JButton btnClose = new JButton("CLOSE");
+		btnClose.setPreferredSize(new Dimension(204, 30));
+		tabs.add(btnClose);
+		btnClose.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				video.stop();
+				frame.setVisible(false);
+			}
+		});
+
 		//Set dimensions of window
 		frame.setLocation(100, 100);
 		frame.setSize(1050, 600);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
-		frame.add(tabs, BorderLayout.NORTH);
-		
-		//Extra video option
-		File f = new File("output.avi");
-		if(!f.exists()) { 
-			processStarter("ffmpeg -i big_buck_bunny_1_minute.avi -filter_complex '[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]' -map '[v]' -map '[a]' output.avi");
-		}
+		frame.add(tabs, BorderLayout.SOUTH);
+
 		if (i == 1){
 			video.playMedia("big_buck_bunny_1_minute.avi");
 		}
@@ -151,30 +156,6 @@ public class MediaPlayer{
 			//Play extra video option
 			video.playMedia("output.avi");
 		}
+	}
 
-		frame.addWindowListener(new java.awt.event.WindowAdapter() {
-		    @Override
-		    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-		    	frame.setVisible(false);
-		    	frame.dispose();
-		    	spellingAid.nextQuizOptions();
-		    }
-		});
-		}
-
-	// to run BASH commands
-		private void processStarter(String command){
-			// process builder to run bash commands
-			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
-			Process process;
-			try {
-				process = builder.start();
-				process.waitFor();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	
-	
-	
 }

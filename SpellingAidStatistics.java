@@ -11,34 +11,62 @@ import java.util.List;
 
 import javax.swing.SwingWorker;
 
+/**
+ * 
+ * This class controls the logic to create hidden statistics files
+ * and storing results of spelling tests in data structures
+ * so that mastered/faulted/failed word numbers and accuracy
+ * rates for each level are correctly displayed.
+ * @authors yyap601 hchu167
+ *
+ */
 public class SpellingAidStatistics extends SwingWorker<Void,String>{
-	
+
 	// This is the SPELLING AID APP
 	SpellingAid spellAidApp;
-	
-	// Files for statistics viewing
+
+	// Files for statistics reading
 	File spelling_aid_tried_words;
 	File spelling_aid_statistics;
-	
+	File spelling_aid_accuracy;
+
 	// ArrayLists for storing file contents for easier processing later according to levels
 	HashMap<Integer, ArrayList<String>> mapOfTriedWords;	
 	ArrayList<String> wordStats;
-	
+
+	// Hashmaps to store accuracy related values for every level
+	HashMap<Integer,Integer> totalAsked;
+	HashMap<Integer,Integer> totalCorrect;
+
 	int zeroWords; // counter to check if there are no words
 
 
 	public SpellingAidStatistics(SpellingAid spellingAidApp){
-		
+
 		// initialise variables appropriately
 		spellAidApp=spellingAidApp;
 		zeroWords = 0; 
 		spelling_aid_tried_words = new File(".spelling_aid_tried_words");
 		spelling_aid_statistics = new File(".spelling_aid_statistics");
+		spelling_aid_accuracy = new File(".spelling_aid_accuracy");
 		wordStats = new ArrayList<String>();
 		mapOfTriedWords = new HashMap<Integer, ArrayList<String>>();
-		
+		totalAsked = new HashMap<Integer,Integer>();
+		totalCorrect = new HashMap<Integer,Integer>();
+
 		// store variables in data structures
 		try {
+			// LEVEL ACCURACY
+			BufferedReader readAccuracyList = new BufferedReader(new FileReader(spelling_aid_accuracy));
+			String accuracyLine = readAccuracyList.readLine();
+			while(accuracyLine != null){
+				String[] accuracyLog = accuracyLine.split(" ");
+				totalAsked.put(Integer.parseInt(accuracyLog[0]), Integer.parseInt(accuracyLog[1]));
+				totalCorrect.put(Integer.parseInt(accuracyLog[0]), Integer.parseInt(accuracyLog[2]));
+				accuracyLine = readAccuracyList.readLine();
+			}
+			readAccuracyList.close();
+
 			// TRIED WORDS
 			BufferedReader readTriedList = new BufferedReader(new FileReader(spelling_aid_tried_words));
 			String triedWord = readTriedList.readLine();
@@ -74,7 +102,7 @@ public class SpellingAidStatistics extends SwingWorker<Void,String>{
 			e.printStackTrace();
 		}
 	}
-	
+
 	// SWINGWORKER ~~
 	protected Void doInBackground(){
 		if(zeroWords == 0){
@@ -89,7 +117,7 @@ public class SpellingAidStatistics extends SwingWorker<Void,String>{
 					continue;
 				}
 				// TITLE
-				publish("\n Level "+i+" Statistics:\n\n");
+				publish("\n Level "+i+" Statistics :\n Attempted Words in Level : "+ triedWordsList.size() +"\t Accuracy : "+getAccuracy(i)+"%"+ "\n\n");
 				// SORT them
 				Collections.sort(triedWordsList);
 				// Check for statistic of words by getting matches and then display the results
@@ -118,7 +146,7 @@ public class SpellingAidStatistics extends SwingWorker<Void,String>{
 		}
 		return null;
 	}
-	
+
 	// this class displays data by publishing them to the JTextArea
 	protected void process(List<String> statsData) {
 		for (String data : statsData) {
@@ -126,5 +154,14 @@ public class SpellingAidStatistics extends SwingWorker<Void,String>{
 		}
 	}
 
-
+	// calculate the accuracy for the current level
+	public double getAccuracy(int level){
+		double noOfQuestionsAnsweredCorrectly = totalCorrect.get(level);
+		double totalQuestionsAsked = totalAsked.get(level);
+		if(totalQuestionsAsked==0.0){
+			return 0;
+		}
+		double accuracy = (noOfQuestionsAnsweredCorrectly/totalQuestionsAsked)*100.0;
+		return Math.round(accuracy*10.0)/10.0;
+	}
 }

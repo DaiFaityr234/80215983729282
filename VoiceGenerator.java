@@ -2,72 +2,78 @@ package spelling;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.swing.SwingWorker;
 
+/**
+ * 
+ * This class governs the main logic for generating festival voices
+ * for pronouncing sentences and spelling words
+ * @authors yyap601 hchu167
+ *
+ */
 public class VoiceGenerator extends SwingWorker<Void, Void>{
-		//private double pitch;
-		//private double utteranceRange;
-		private double speed;
+		private double stretch;
 		private Voice voice;
+		private double pitch;
+		private double range;
 		private File schemeFile;
 		private String swingWorkerChangedText;
 		private String swingWorkerNormalText;
-		
-		
-		public VoiceGenerator(Voice chosenVoice, double chosenSpeed){
-			makeSureScmFileIsPresent();
-			schemeFile = new File(".spelling_aid_voice_scm");
-					
-			//this.pitch = pitch;
-			//this.utteranceRange = utteranceRange;
-			this.speed = chosenSpeed;
-			this.voice = chosenVoice;
-		}
-
 		public static enum Voice{
 			DEFAULT,AUCKLAND;
 		}
 		
+		// constructor to construct a voice generator with chosen voice and speed
+		public VoiceGenerator(Voice chosenVoice, double chosenDurationStretch, double pitch, double range){
+			makeSureScmFileIsPresent();
+			schemeFile = new File(".spelling_aid_voice.scm");
+					
+			this.pitch = pitch;
+			this.range = range;
+			this.stretch = chosenDurationStretch;
+			this.voice = chosenVoice;
+			
+		}
+		
+		// to change the preferred voice
 		public void setVoice(Voice chosenVoice){
 			voice=chosenVoice;
 		}
 		
-		
+		// this function gets passed in 2 strings, 1 which is the text to be said in normal speed, 
+		// the other which is the text to be said in the chosen duration stretch
 		public void sayText(String normalSpeedText,String changedText){
+			double originalStretch = stretch;
 			ClearStatistics.clearFile(schemeFile);
 			if(voice == Voice.DEFAULT){
-				System.out.println("DEFAULT");
-				SpellingList.record(schemeFile, "(voice_rab_diphone)\n" );
+				if(changedText.equals("a")){
+					changedText="ae";
+				}
+				Tools.record(schemeFile, "(voice_rab_diphone)\n" );
 			} else {
-				System.out.println("AUCKLAND");
-				SpellingList.record(schemeFile, "(voice_akl_nz_jdt_diphone)\n");
+				Tools.record(schemeFile, "(voice_akl_nz_jdt_diphone)\n");
+				if(changedText.equals("a")){
+					stretch-=0.3;
+				} else {
+					stretch-=0.1;
+				}
+
 			}
-			SpellingList.record(schemeFile,("(SayText \"" + normalSpeedText + "\" )\n"));
-			SpellingList.record(schemeFile, "(Parameter.set 'Duration_Stretch "+speed+")\n");
-			SpellingList.record(schemeFile,("(SayText \"" + changedText + "\" )\n"));
-			SpellingList.record(schemeFile,"(quit)");
-			processStarter("festival -b .spelling_aid_voice_scm");
-			
+			Tools.record(schemeFile,("(SayText \"" + normalSpeedText + "\" )\n"));
+			Tools.record(schemeFile,"(set! duffint_params '((start " + pitch + ")(end " + (pitch - range) + ")))\n");
+			Tools.record(schemeFile,"(Parameter.set 'Int_Method 'DuffInt)\n");
+			Tools.record(schemeFile,"(Parameter.set 'Int_Target_Method Int_Targets_Default)\n");
+			Tools.record(schemeFile, "(Parameter.set 'Duration_Stretch "+stretch+")\n");
+			Tools.record(schemeFile,("(SayText \"" + changedText + "\" )\n"));
+			Tools.record(schemeFile,"(quit)");
+			Tools.processStarter("festival -b .spelling_aid_voice.scm");
+			stretch = originalStretch;
 		}
 		
-		
-		// to run BASH commands
-		private void processStarter(String command){
-			// process builder to run bash commands
-			ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", command);
-			Process process;
-			try {
-				process = builder.start();
-				process.waitFor();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		
+		// make sure scheme file is present for writing or typing
 		private void makeSureScmFileIsPresent() {
-			File scmFile = new File(".spelling_aid_voice_scm");
+			File scmFile = new File(".spelling_aid_voice.scm");
 			try{
 				if(! scmFile.exists()){
 					scmFile.createNewFile();

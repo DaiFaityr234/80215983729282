@@ -10,6 +10,13 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+/**
+ * 
+ * This class creators a level selector that allows the user to select a starting level
+ * when pressing the 'New Spelling Quiz' button to start a quiz
+ * @authors yyap601 hchu167
+ *
+ */
 public class LevelSelector implements ActionListener{
 	//Creating buttons
 	final JLabel levelPrompt = new JLabel("Select a level:");
@@ -27,18 +34,18 @@ public class LevelSelector implements ActionListener{
 
 	private int startLevel = 0;
 
-	
+	// Constructor for level selector
 	public LevelSelector(){
 		JOptionPane.showOptionDialog(null,
 				makePanel(),
-				"Level Selection",
+				"VOXSPELL LEVEL SELECTOR",
 				JOptionPane.YES_OPTION, JOptionPane.PLAIN_MESSAGE, null, new String[]{"CANCEL"} , null);
 	}
 
+	// Method to make the main panel of the level selector
 	private JPanel makePanel() {
 		JPanel panel = new JPanel();
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-
 
 		//Centre all buttons
 		levelPrompt.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -54,7 +61,7 @@ public class LevelSelector implements ActionListener{
 		_levelten.setAlignmentX(Component.CENTER_ALIGNMENT);
 		_leveleleven.setAlignmentX(Component.CENTER_ALIGNMENT);
 		
-
+		//Add action listeners
 		_levelone.addActionListener(this);
 		_leveltwo.addActionListener(this);
 		_levelthree.addActionListener(this);
